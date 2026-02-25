@@ -169,7 +169,6 @@ Flash `build/bad_pico_usb.uf2` onto the Pico W.
 ## Planned Features
 
 - Trigger payload execution when a specific Bluetooth device becomes visible.
-- Pre-prepared payload sequences stored in flash.
 
 ## Technical Details
 
