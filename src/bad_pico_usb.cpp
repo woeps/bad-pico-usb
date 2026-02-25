@@ -84,7 +84,11 @@ void send_key(char c) {
     keys[0] = keycode;
 
     tud_hid_keyboard_report(kReportId, modifier, keys.data());
-    sleep_ms(5);
+
+    while (!tud_hid_ready()) {
+        tud_task();
+        sleep_ms(2);
+    }
 
     tud_hid_keyboard_report(kReportId, 0, nullptr);
     sleep_ms(5);
