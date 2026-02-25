@@ -55,6 +55,22 @@ Keys joined with `+` are pressed simultaneously:
 <home>    <end>     <pageup>     <pagedown>
 <insert>  <capslock> <printscreen>
 <f1> .. <f12>
+<sleep:N>                        — wait N seconds (0-3600) before continuing
+```
+
+##### Sleep command
+
+The `<sleep:N>` command pauses execution for N seconds before sending any further keystrokes. This is useful for timing-dependent operations or waiting for applications to respond.
+
+- N must be an integer between 0 and 3600 (1 hour)
+- Decimal values are not supported
+- The USB connection remains active during sleep
+
+Examples:
+```
+<sleep:3>                        — wait 3 seconds
+<sleep:60>                       — wait 1 minute
+open<sleep:2>notepad<enter>     — type "open", wait 2s, then open notepad
 ```
 
 #### Standalone modifiers (press + release)

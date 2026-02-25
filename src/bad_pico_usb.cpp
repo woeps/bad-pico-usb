@@ -2,6 +2,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 
 #include "bsp/board.h"
 #include "pico/stdlib.h"
@@ -226,6 +227,39 @@ bool lookup_key_name(const char *name, uint8_t &keycode, uint8_t &modifier) {
 }
 
 void send_tag(const char *tag) {
+    // Check for sleep command: <sleep:N>
+    if (strncmp(tag, "sleep:", 6) == 0) {
+        const char *seconds_str = tag + 6;
+        char *endptr;
+        long seconds = strtol(seconds_str, &endptr, 10);
+        
+        // Validate the number
+        if (endptr == seconds_str || *endptr != '\0') {
+            report_error("invalid sleep duration: %s\r\n", seconds_str);
+            return;
+        }
+        
+        if (seconds < 0 || seconds > 3600) {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%ld", seconds);
+            report_error("sleep duration out of range (0-3600): %s\r\n", buf);
+            return;
+        }
+        
+        // Sleep while keeping USB alive
+        long ms_remaining = seconds * 1000;
+        const long chunk_ms = 100; // Check USB every 100ms
+        
+        while (ms_remaining > 0) {
+            long sleep_time = (ms_remaining > chunk_ms) ? chunk_ms : ms_remaining;
+            tud_task();
+            sleep_ms(sleep_time);
+            ms_remaining -= sleep_time;
+        }
+        
+        return;
+    }
+    
     // Parse tag content: split on '+', accumulate modifiers, last non-modifier is the key
     char buf[kTagMaxLen];
     strncpy(buf, tag, kTagMaxLen - 1);
