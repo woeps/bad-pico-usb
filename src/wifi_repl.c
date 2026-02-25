@@ -34,6 +34,8 @@ typedef struct repl_client {
 } repl_client_t;
 
 static wifi_repl_line_cb_t s_line_cb = NULL;
+static queue_t *s_error_queue = NULL;
+static struct tcp_pcb *s_active_pcb = NULL;
 
 static dhcp_entry_t s_dhcp_entries[] = {
     { {0}, {192, 168, 4, 2}, {255, 255, 255, 0}, 24 * 60 * 60 },
@@ -52,6 +54,9 @@ static dhcp_config_t s_dhcp_config = {
 
 static void repl_client_close(repl_client_t *client) {
     if (client->pcb) {
+        if (s_active_pcb == client->pcb) {
+            s_active_pcb = NULL;
+        }
         tcp_arg(client->pcb, NULL);
         tcp_recv(client->pcb, NULL);
         tcp_err(client->pcb, NULL);
@@ -87,16 +92,6 @@ static err_t repl_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, e
                     tcp_write(tpcb, prompt, 2, TCP_WRITE_FLAG_COPY);
                 }
                 client->buf_len = 0;
-            } else if (c == '\\' && i + 1 < len && data[i + 1] == 't') {
-                if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
-                    client->buf[client->buf_len++] = '\t';
-                }
-                ++i;
-            } else if (c == '\\' && i + 1 < len && data[i + 1] == 'n') {
-                if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
-                    client->buf[client->buf_len++] = '\n';
-                }
-                ++i;
             } else {
                 if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
                     client->buf[client->buf_len++] = c;
@@ -115,6 +110,9 @@ static void repl_client_err(void *arg, err_t err) {
     (void)err;
     repl_client_t *client = (repl_client_t *)arg;
     if (client) {
+        if (s_active_pcb == client->pcb) {
+            s_active_pcb = NULL;
+        }
         client->pcb = NULL;
         free(client);
     }
@@ -139,14 +137,31 @@ static err_t repl_server_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     tcp_recv(newpcb, repl_client_recv);
     tcp_err(newpcb, repl_client_err);
 
+    s_active_pcb = newpcb;
+
     const char *banner = "Bad Pico KB - type a line and press Enter to send as keypresses\r\n> ";
     tcp_write(newpcb, banner, (u16_t)strlen(banner), TCP_WRITE_FLAG_COPY);
 
     return ERR_OK;
 }
 
-void wifi_repl_init(wifi_repl_line_cb_t cb) {
+void wifi_repl_poll_errors(void) {
+    if (!s_error_queue || !s_active_pcb) {
+        return;
+    }
+    char err_buf[WIFI_REPL_LINE_MAX];
+    while (queue_try_remove(s_error_queue, err_buf)) {
+        uint16_t len = (uint16_t)strlen(err_buf);
+        if (len > 0) {
+            tcp_write(s_active_pcb, err_buf, len, TCP_WRITE_FLAG_COPY);
+            tcp_output(s_active_pcb);
+        }
+    }
+}
+
+void wifi_repl_init(wifi_repl_line_cb_t cb, queue_t *error_queue) {
     s_line_cb = cb;
+    s_error_queue = error_queue;
 
     if (cyw43_arch_init()) {
         printf("wifi_repl: cyw43_arch_init failed\n");

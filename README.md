@@ -16,21 +16,75 @@ This project makes a Raspberry Pi **Pico W** act as a "bad" USB device with a wi
    ```
    nc 192.168.4.1 4242
    ```
-3. Type a line and press Enter — the Pico will type that text on the USB host. To send an Enter keypress, include `\n` at the end of the line.
+3. Type a line and press Enter — the Pico will type that text as USB HID keypresses on the host.
 
-### Supported Special Characters
+### Supported Characters
 
-Only the characters listed below are supported. All others are silently ignored.
+Plain characters are typed directly. All unsupported characters are silently ignored.
 
 | Character(s) | How to enter |
 |--------------|--------------|
 | `a`–`z` | Type directly |
-| `A`–`Z` | Type directly (uppercase) |
+| `A`–`Z` | Type directly (sends Shift + key) |
 | `0`–`9` | Type directly |
 | `` . , - = / ; ' [ ] \ ` `` | Type directly |
 | Space | Type directly |
-| Tab | Type `\t` — interpreted as a Tab keypress |
-| Enter | Type `\n` — interpreted as an Enter keypress |
+| `<` | Type `\<` (escaped, since `<` starts a tag) |
+
+### Special Keys & Key Combos
+
+Use `<tag>` notation to send special keys and key combinations. Tags are **case-insensitive**.
+
+#### Modifier + key combos
+
+Keys joined with `+` are pressed simultaneously:
+
+```
+<ctrl+c>        — Ctrl-C
+<ctrl+alt+del>  — Ctrl-Alt-Delete
+<super+l>       — GUI/Super + L (lock screen)
+<alt+tab>       — Alt-Tab
+<ctrl+shift+t>  — Ctrl-Shift-T
+```
+
+#### Standalone special keys
+
+```
+<enter>   <tab>     <esc>        <backspace>   <delete>
+<space>   <up>      <down>       <left>        <right>
+<home>    <end>     <pageup>     <pagedown>
+<insert>  <capslock> <printscreen>
+<f1> .. <f12>
+```
+
+#### Standalone modifiers (press + release)
+
+```
+<ctrl>  <alt>  <shift>  <super>
+```
+
+#### Modifier aliases
+
+| Name | Aliases |
+|------|---------|
+| Left Ctrl | `ctrl`, `control` |
+| Left Alt | `alt` |
+| Left Shift | `shift` |
+| Left GUI / Super | `super`, `win`, `gui`, `cmd` |
+
+#### Examples
+
+```
+hello world<enter>              — types "hello world" then presses Enter
+<ctrl+a><ctrl+c>                — select all, then copy
+<super+l>                       — lock screen (Windows/Linux)
+<alt+f4>                        — close window
+cd /tmp<enter>                  — types a shell command and presses Enter
+```
+
+#### Error handling
+
+Unknown tag names produce an error message in the REPL session and are **not** forwarded as keypresses.
 
 ## Configuration
 

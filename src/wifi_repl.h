@@ -2,6 +2,7 @@
 #define WIFI_REPL_H
 
 #include <stddef.h>
+#include "pico/util/queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,7 +12,9 @@ extern "C" {
 
 typedef void (*wifi_repl_line_cb_t)(const char *line, size_t len);
 
-void wifi_repl_init(wifi_repl_line_cb_t cb);
+void wifi_repl_init(wifi_repl_line_cb_t cb, queue_t *error_queue);
+
+void wifi_repl_poll_errors(void);
 
 #ifdef __cplusplus
 }
