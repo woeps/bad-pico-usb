@@ -94,9 +94,9 @@ struct Macro {
 };
 
 static constexpr Macro macros[] = {
-    {"openterminal", "<ctrl+alt+t>"},
     {"selectall",    "<ctrl+a>"},
     {"copyall",      "<ctrl+a><ctrl+c>"},
+    {"paste",        "<ctrl+v>"},
     {"hello",        "Hello, World!<enter>"},
     {"slack",        "<cmd+space>slack<sleep:1><enter>"},
     {"s:vie",        "<cmd+k>office-vie<enter>"},
