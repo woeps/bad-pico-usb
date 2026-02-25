@@ -86,6 +86,47 @@ cd /tmp<enter>                  — types a shell command and presses Enter
 
 Unknown tag names produce an error message in the REPL session and are **not** forwarded as keypresses.
 
+### Macros
+
+Use `<<macro_name>>` to expand a predefined macro into a sequence of text and key combos. Macro names are **case-insensitive**.
+
+#### Built-in macros
+
+| Macro | Expands to | Effect |
+|-------|-----------|--------|
+| `<<openterminal>>` | `<ctrl+alt+t>` | Open terminal (Linux) |
+| `<<selectall>>` | `<ctrl+a>` | Select all |
+| `<<copyall>>` | `<ctrl+a><ctrl+c>` | Select all and copy |
+| `<<hello>>` | `Hello, World!<enter>` | Type greeting and press Enter |
+
+#### Adding macros
+
+Macros are defined as a compile-time table in `src/bad_pico_usb.cpp`:
+
+```cpp
+static constexpr Macro macros[] = {
+    {"openterminal", "<ctrl+alt+t>"},
+    {"selectall",    "<ctrl+a>"},
+    {"copyall",      "<ctrl+a><ctrl+c>"},
+    {"hello",        "Hello, World!<enter>"},
+};
+```
+
+Macro bodies follow the same syntax as regular input — they can contain plain text and `<tag>` key combos.
+
+#### Examples
+
+```
+<<hello>>                       — types "Hello, World!" then presses Enter
+<<selectall>>                   — selects all text
+<<openterminal>>                — opens a terminal
+type something<<enter>>         — ERROR: "enter" is not a macro; use <enter> for key tags
+```
+
+#### Error handling
+
+Unknown macro names produce an error message in the REPL session and no keypresses are sent.
+
 ## Configuration
 
 WiFi credentials and REPL port are set as compile-time defines in `CMakeLists.txt`:

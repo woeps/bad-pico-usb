@@ -87,6 +87,25 @@ static constexpr KeyName key_names[] = {
 
 static constexpr size_t kKeyNameCount = sizeof(key_names) / sizeof(key_names[0]);
 
+struct Macro {
+    const char *name;
+    const char *expansion;
+};
+
+static constexpr Macro macros[] = {
+    {"openterminal", "<ctrl+alt+t>"},
+    {"selectall",    "<ctrl+a>"},
+    {"copyall",      "<ctrl+a><ctrl+c>"},
+    {"hello",        "Hello, World!<enter>"},
+    {"slack",        "<cmd+space>slack<enter>"},
+    {"s:vie",        "<cmd+k>office-vie<enter>"},
+    {"s:general",    "<cmd+k>general<enter>"},
+    {"s:cake",       "CAKE! I'll bring cake for everyone! @cakekeepersvie<ctrl+enter><enter>"},
+    {"autocake",     "<<slack>><<s:vie>><<s:cake>><<s:general>>"},
+};
+
+static constexpr size_t kMacroCount = sizeof(macros) / sizeof(macros[0]);
+
 bool char_to_key(char c, uint8_t &keycode, uint8_t &modifier) {
     modifier = 0;
 
@@ -123,6 +142,7 @@ bool char_to_key(char c, uint8_t &keycode, uint8_t &modifier) {
         case ']': keycode = HID_KEY_BRACKET_RIGHT; return true;
         case '\\': keycode = HID_KEY_BACKSLASH; return true;
         case '`': keycode = HID_KEY_GRAVE;     return true;
+        case '@': keycode = HID_KEY_2; modifier = KEYBOARD_MODIFIER_LEFTSHIFT; return true;
         case '\t': keycode = HID_KEY_TAB;      return true;
         case '\n': keycode = HID_KEY_ENTER;    return true;
         default: break;
@@ -177,6 +197,15 @@ bool strcasecmp_const(const char *a, const char *b) {
         ++b;
     }
     return *a == '\0' && *b == '\0';
+}
+
+const char *lookup_macro(const char *name) {
+    for (size_t i = 0; i < kMacroCount; ++i) {
+        if (strcasecmp_const(name, macros[i].name)) {
+            return macros[i].expansion;
+        }
+    }
+    return nullptr;
 }
 
 bool lookup_key_name(const char *name, uint8_t &keycode, uint8_t &modifier) {
@@ -246,6 +275,32 @@ void send_text(const char *text) {
             // Escaped '<' — send literal '<'
             send_key('<');
             p += 2;
+        } else if (*p == '<' && *(p + 1) == '<') {
+            // Macro start — find closing '>>'
+            const char *start = p + 2;
+            const char *end = strstr(start, ">>");
+            if (!end) {
+                // No closing '>>' — send '<' literally and re-scan
+                send_key('<');
+                ++p;
+                continue;
+            }
+            size_t len = static_cast<size_t>(end - start);
+            if (len == 0 || len >= kTagMaxLen) {
+                report_error("invalid macro: <<%.*s>>\r\n", start);
+                p = end + 2;
+                continue;
+            }
+            char macro_name[kTagMaxLen];
+            memcpy(macro_name, start, len);
+            macro_name[len] = '\0';
+            const char *expansion = lookup_macro(macro_name);
+            if (!expansion) {
+                report_error("unknown macro: %s\r\n", macro_name);
+            } else {
+                send_text(expansion);
+            }
+            p = end + 2;
         } else if (*p == '<') {
             // Tag start — find closing '>'
             const char *start = p + 1;
