@@ -106,7 +106,7 @@ Unknown tag names produce an error message in the REPL session and are **not** f
 
 Use `<<macro_name>>` to expand a predefined macro into a sequence of text and key combos. Macro names are **case-insensitive**.
 
-#### Built-in macros
+#### Possible example macros (not implemented)
 
 | Macro | Expands to | Effect |
 |-------|-----------|--------|
