@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -38,6 +38,8 @@ pico_sdk_init()
 add_executable(bad_pico_usb 
     src/bad_pico_usb.cpp
     src/usb_descriptors.c
+    src/wifi_repl.c
+    src/dhserver.c
 )
 
 # binary info (readabl by picotool)
@@ -62,12 +64,19 @@ target_link_libraries(bad_pico_usb
     hardware_dma
     tinyusb_device
     tinyusb_board
+    pico_cyw43_arch_lwip_threadsafe_background
 )
 
 # Add the standard include files to the build
 target_include_directories(bad_pico_usb PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src
 	#${CMAKE_CURRENT_LIST_DIR}/src/generated
+)
+
+target_compile_definitions(bad_pico_usb PRIVATE
+    WIFI_SSID="BadPicoKB"
+    WIFI_PASSWORD="badpico1"
+    REPL_PORT=4242
 )
 
 
