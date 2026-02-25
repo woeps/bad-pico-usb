@@ -87,6 +87,16 @@ static err_t repl_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, e
                     tcp_write(tpcb, prompt, 2, TCP_WRITE_FLAG_COPY);
                 }
                 client->buf_len = 0;
+            } else if (c == '\\' && i + 1 < len && data[i + 1] == 't') {
+                if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
+                    client->buf[client->buf_len++] = '\t';
+                }
+                ++i;
+            } else if (c == '\\' && i + 1 < len && data[i + 1] == 'n') {
+                if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
+                    client->buf[client->buf_len++] = '\n';
+                }
+                ++i;
             } else {
                 if (client->buf_len < WIFI_REPL_LINE_MAX - 1) {
                     client->buf[client->buf_len++] = c;

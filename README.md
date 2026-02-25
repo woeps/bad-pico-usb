@@ -16,7 +16,21 @@ This project makes a Raspberry Pi **Pico W** act as a "bad" USB device with a wi
    ```
    nc 192.168.4.1 4242
    ```
-3. Type a line and press Enter — the Pico will type that text followed by Enter on the USB host.
+3. Type a line and press Enter — the Pico will type that text on the USB host. To send an Enter keypress, include `\n` at the end of the line.
+
+### Supported Special Characters
+
+Only the characters listed below are supported. All others are silently ignored.
+
+| Character(s) | How to enter |
+|--------------|--------------|
+| `a`–`z` | Type directly |
+| `A`–`Z` | Type directly (uppercase) |
+| `0`–`9` | Type directly |
+| `` . , - = / ; ' [ ] \ ` `` | Type directly |
+| Space | Type directly |
+| Tab | Type `\t` — interpreted as a Tab keypress |
+| Enter | Type `\n` — interpreted as an Enter keypress |
 
 ## Configuration
 

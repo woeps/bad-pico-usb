@@ -135,7 +135,6 @@ int main() {
         TextMessage msg;
         if (queue_try_remove(&s_text_queue, &msg)) {
             send_text(msg.text);
-            send_key('\n');
         }
 
         sleep_ms(1);
