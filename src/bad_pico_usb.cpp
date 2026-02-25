@@ -98,7 +98,7 @@ static constexpr Macro macros[] = {
     {"selectall",    "<ctrl+a>"},
     {"copyall",      "<ctrl+a><ctrl+c>"},
     {"hello",        "Hello, World!<enter>"},
-    {"slack",        "<cmd+space>slack<enter>"},
+    {"slack",        "<cmd+space>slack<sleep:1><enter>"},
     {"s:vie",        "<cmd+k>office-vie<enter>"},
     {"s:general",    "<cmd+k>general<enter>"},
     {"s:cake",       "CAKE! I'll bring cake for everyone! @cakekeepersvie<ctrl+enter><enter>"},
@@ -372,7 +372,7 @@ void on_repl_line(const char *line, size_t /*len*/) {
 void core1_entry() {
     wifi_repl_init(on_repl_line, &s_error_queue);
     while (true) {
-        wifi_repl_poll_errors();
+        wifi_repl_poll();
         sleep_ms(10);
     }
 }

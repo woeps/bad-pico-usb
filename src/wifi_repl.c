@@ -9,6 +9,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 #include "lwip/ip4_addr.h"
+#include "lwip/err.h"
 #include "dhserver.h"
 
 #ifndef WIFI_SSID
@@ -37,6 +38,11 @@ static wifi_repl_line_cb_t s_line_cb = NULL;
 static queue_t *s_error_queue = NULL;
 static struct tcp_pcb *s_active_pcb = NULL;
 
+// LED blinking state
+static bool s_wifi_ready = false;
+static absolute_time_t s_last_led_toggle = 0;
+static const uint32_t LED_BLINK_INTERVAL_MS = 500; // Blink every 500ms
+
 static dhcp_entry_t s_dhcp_entries[] = {
     { {0}, {192, 168, 4, 2}, {255, 255, 255, 0}, 24 * 60 * 60 },
     { {0}, {192, 168, 4, 3}, {255, 255, 255, 0}, 24 * 60 * 60 },
@@ -51,6 +57,19 @@ static dhcp_config_t s_dhcp_config = {
     .num_entry = 3,
     .entries = s_dhcp_entries,
 };
+
+// LED blink function
+static void wifi_repl_blink_led() {
+    if (!s_wifi_ready) return;
+    
+    absolute_time_t now = get_absolute_time();
+    if (absolute_time_diff_us(s_last_led_toggle, now) >= LED_BLINK_INTERVAL_MS * 1000) {
+        static bool led_state = false;
+        led_state = !led_state;
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state);
+        s_last_led_toggle = now;
+    }
+}
 
 static void repl_client_close(repl_client_t *client) {
     if (client->pcb) {
@@ -170,6 +189,19 @@ void wifi_repl_init(wifi_repl_line_cb_t cb, queue_t *error_queue) {
 
     cyw43_arch_enable_ap_mode(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK);
 
+    // Make the AP hidden (not visible in WiFi scans)
+    // Send the Broadcom "closednet" iovar via WLC_SET_VAR (263) on the AP interface.
+    // Buffer format: null-terminated var name, followed by a little-endian u32 value.
+    // cyw43_ioctl() re-encodes cmd: (cmd >> 1) = WLC command, (cmd & 1) = SET(1)/GET(0).
+    // So WLC_SET_VAR (263) must be passed as (263 << 1) | 1 = 527.
+    {
+        uint8_t buf[16];
+        memcpy(buf, "closednet\x00", 10);  // var name + null terminator
+        buf[10] = 1; buf[11] = 0; buf[12] = 0; buf[13] = 0;  // val = 1 (LE32)
+        int ret = cyw43_ioctl(&cyw43_state, (263 << 1) | 1 /* WLC_SET_VAR, SET */, 14, buf, 1 /* AP iface */);
+        printf("wifi_repl: closednet iovar set → %s (%d)\n", ret == 0 ? "ok" : "FAILED", ret);
+    }
+
     dhserv_init(&s_dhcp_config);
 
     struct tcp_pcb *pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
@@ -193,4 +225,13 @@ void wifi_repl_init(wifi_repl_line_cb_t cb, queue_t *error_queue) {
     tcp_accept(listen_pcb, repl_server_accept);
 
     printf("wifi_repl: AP \"%s\" up, REPL on port %d\n", WIFI_SSID, REPL_PORT);
+    
+    // Set WiFi ready flag to start LED blinking
+    s_wifi_ready = true;
+    s_last_led_toggle = get_absolute_time();
+}
+
+void wifi_repl_poll() {
+    wifi_repl_poll_errors();
+    wifi_repl_blink_led();
 }

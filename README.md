@@ -175,5 +175,6 @@ Flash `build/bad_pico_usb.uf2` onto the Pico W.
 
 - Pico SDK 2.1.1
 - USB HID keyboard via TinyUSB on core 0
-- Wi-Fi AP + lwIP TCP REPL server (`pico_cyw43_arch_lwip_threadsafe_background`) on core 1
+- Hidden Wi-Fi AP + lwIP TCP REPL server (`pico_cyw43_arch_lwip_threadsafe_background`) on core 1
+- Onboard LED blinks when Wi-Fi AP is ready
 - Inter-core communication via `pico_util/queue`
